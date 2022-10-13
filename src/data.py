@@ -9,6 +9,7 @@ from pathlib import Path
 
 # %%
 
+
 def tokenize_and_reindex(sentences, entity_markers, tokenizer, em_tokens=("*", "*")):
     sentence_lengths = [len(s) for s in sentences]
     all_tokens = []
@@ -77,6 +78,7 @@ def tokenize_and_reindex(sentences, entity_markers, tokenizer, em_tokens=("*", "
     
     return tokenizer.convert_tokens_to_ids(tokenized_text), entity_positions
 
+
 def collate_fn_train(batch):
         n_tokens = [len(e["tokens"]) for f in batch for e in f["exemplars"]] + [len(e["tokens"]) for f in batch for e in f["test_examples"]]
         # get max dimensions for padding
@@ -129,11 +131,13 @@ def collate_fn_train(batch):
 
         return exemplar_tokens, exemplar_mask, exemplar_positions, exemplar_labels, query_tokens, query_mask, query_positions, query_labels, label_types
 
+
 def parse_test(input_file, tokenizer, K=1, n_queries=1, n_samples=100, markers=True, balancing="soft", seed=123, ensure_positive=False, cache="cache/", eval_single=False):
     all_eps = []
     for i in range(3):
         all_eps.extend(parse_episodes(input_file, tokenizer, K, n_queries, n_samples, markers, balancing="soft", seed=seed+i, ensure_positive=ensure_positive, cache=cache, eval_single=eval_single))
     return all_eps
+
 
 def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, markers=True, balancing="soft", seed=123, ensure_positive=False, cache="cache/", eval_single=False, no_processing=False):
 
@@ -317,6 +321,7 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
 
     return output
 
+
 def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, cache=None, eval_single=False, no_processing=False):
 
     episodes = json.load(open(index_file))
@@ -385,10 +390,12 @@ def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, c
 
     return output
 
+
 def intersection(lst1, lst2):
     # https://www.geeksforgeeks.org/python-intersection-two-lists/
     lst3 = [value for value in lst1 if value in lst2]
     return lst3
+
 
 def select_labels(document, relation_types, no_processing=False):
 
@@ -412,6 +419,7 @@ def select_labels(document, relation_types, no_processing=False):
             "entity_positions": document["entity_positions"],
             "labels": labeled_relations,
         }
+
 
 def parse_document(document, tokenizer, markers=True, no_processing=False):
 
