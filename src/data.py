@@ -9,18 +9,17 @@ from pathlib import Path
 
 # %%
 
-def tokenize_and_reindex(sentences, entity_markers, tokenizer, em_tokens=("*", "*")):
-    sentence_lengths = [len(s) for s in sentences]
+
+def tokenize_and_reindex(sentences, tokenizer, em_tokens=("*", "*")):
+    sentence_lengths = [len(s) for s["text"] in sentences]
     all_tokens = []
     for sent in sentences:
-        all_tokens.extend(sent)
+        all_tokens.extend(sent["text"])
     # all_tokens.append(" ")
-
+    l_offset = 1
     if type(tokenizer) == transformers.BertTokenizer or type(tokenizer) == transformers.BertTokenizerFast:
-        l_offset = 1
         all_tokens = ["[CLS]"] + all_tokens + ["[SEP]"]
     else:
-        l_offset = 1
         all_tokens = ["<s>"] + all_tokens + ["</s>"]
 
     start_tokens = [[] for _ in all_tokens]
@@ -33,10 +32,10 @@ def tokenize_and_reindex(sentences, entity_markers, tokenizer, em_tokens=("*", "
     #print([s[0] for s in sentences])
     m = 0
     mention_map = []
-    for i, mentions in enumerate(entity_markers):
-        for ment in mentions:
-            start_tokens[sentence_offsets[ment['sent_id']] + ment['pos'][0] + l_offset].append(m)
-            end_tokens[sentence_offsets[ment['sent_id']] + ment['pos'][1] + l_offset].append(m)
+    for i, mentions in enumerate(sentences):
+        for ment in mentions["annotations"]:
+            start_tokens[ment["locations"]["offset"] + l_offset].append(m)
+            end_tokens[ment["locations"]["offset"] + ment["locations"]["length"] + l_offset].append(m)
             mention_map.append(i)
             m += 1
 
@@ -63,8 +62,8 @@ def tokenize_and_reindex(sentences, entity_markers, tokenizer, em_tokens=("*", "
     for e in open_spans:
         if -1 in e:
             print("warning!")
-            
-    entity_positions = [[] for _ in entity_markers]
+    number_of_entity_in_document = sum([len(s["annotations"]) for s in sentences])
+    entity_positions = [[] for _ in range(number_of_entity_in_document)]
     for i, span in enumerate(open_spans):
         entity_positions[mention_map[i]].append(span)
 
@@ -76,6 +75,7 @@ def tokenize_and_reindex(sentences, entity_markers, tokenizer, em_tokens=("*", "
     """
     
     return tokenizer.convert_tokens_to_ids(tokenized_text), entity_positions
+
 
 def collate_fn_train(batch):
         n_tokens = [len(e["tokens"]) for f in batch for e in f["exemplars"]] + [len(e["tokens"]) for f in batch for e in f["test_examples"]]
@@ -129,11 +129,13 @@ def collate_fn_train(batch):
 
         return exemplar_tokens, exemplar_mask, exemplar_positions, exemplar_labels, query_tokens, query_mask, query_positions, query_labels, label_types
 
+
 def parse_test(input_file, tokenizer, K=1, n_queries=1, n_samples=100, markers=True, balancing="soft", seed=123, ensure_positive=False, cache="cache/", eval_single=False):
     all_eps = []
     for i in range(3):
         all_eps.extend(parse_episodes(input_file, tokenizer, K, n_queries, n_samples, markers, balancing="soft", seed=seed+i, ensure_positive=ensure_positive, cache=cache, eval_single=eval_single))
     return all_eps
+
 
 def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, markers=True, balancing="soft", seed=123, ensure_positive=False, cache="cache/", eval_single=False, no_processing=False):
 
@@ -156,28 +158,30 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
 
     document_blacklist = []
 
-    for i, document in tqdm(enumerate(input_file), desc="Indexing"):
+    for i, document in tqdm(enumerate(input_file["documents"]), desc="Indexing"):
 
         relation_types_in_document = []
 
-        if len(document['vertexSet']) < 2:
+        if len(document["relations"]) < 1:
             document_blacklist.append(i)
 
-        for rel in document['labels']:
-
-            if rel['r'] not in relation_types_in_document:
+        for rel in document['relations']:
+            entity1_type = rel["infons"]["entity1"]
+            entity2_type = rel["infons"]["entity2"]
+            define_rel = entity1_type + "-" + r["infons"]["type"] + "-" + entity2_type
+            if define_rel not in relation_types_in_document:
                 # mark as added
-                relation_types_in_document.append(rel['r'])
+                relation_types_in_document.append(define_rel)
             else:
                 # already added document to dictionary -> skip
                 continue
 
-            if rel['r'] not in documents_for_type.keys():
+            if define_rel not in documents_for_type.keys():
                 # add relation type to keys
-                documents_for_type[rel['r']] = []
+                documents_for_type[define_rel] = []
 
             # add entry for document
-            documents_for_type[rel['r']].append(i)     
+            documents_for_type[define_rel].append(i)
         types_for_document.append(relation_types_in_document)   
 
     
@@ -275,13 +279,13 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
                 parsed_docs = json.load(open(filepath,"r"))
             except:
                 print("ran into problems loading file. rebuilding dataset.")
-                parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file, desc="Parsing documents")]
+                parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file["documents"], desc="Parsing documents")]
                 json.dump(parsed_docs, open(filepath,"w"))
         else:
-            parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file, desc="Parsing documents")]
+            parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file["documents"], desc="Parsing documents")]
             json.dump(parsed_docs, open(filepath,"w"))
     else:
-        parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file, desc="Parsing documents")]
+        parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file["documents"], desc="Parsing documents")]
 
     # ----- Episode Construction -----
     output = []
@@ -316,6 +320,7 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
             output.append(episode)
 
     return output
+
 
 def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, cache=None, eval_single=False, no_processing=False):
 
@@ -385,10 +390,12 @@ def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, c
 
     return output
 
+
 def intersection(lst1, lst2):
     # https://www.geeksforgeeks.org/python-intersection-two-lists/
     lst3 = [value for value in lst1 if value in lst2]
     return lst3
+
 
 def select_labels(document, relation_types, no_processing=False):
 
@@ -413,21 +420,20 @@ def select_labels(document, relation_types, no_processing=False):
             "labels": labeled_relations,
         }
 
-def parse_document(document, tokenizer, markers=True, no_processing=False):
 
+def parse_document(document, tokenizer, markers=True, no_processing=False):
 
     if no_processing:
         return {
-            "labels": document['labels'],
-            "sents": document['sents'], 
-            "vertexSet": document['vertexSet'],
+            "passages": document['passages'],
+            "relations": document['relations']
         }
     else:
         # parse doc
         em = None
         if markers:
             em = ("*", "*")
-        tokens, entity_positions = tokenize_and_reindex(document['sents'], document['vertexSet'], tokenizer, em)
+        tokens, entity_positions = tokenize_and_reindex(document['passages'], tokenizer, em)
 
         return {
             "tokens": tokens,
