@@ -414,8 +414,8 @@ def select_labels(document, relation_types, no_processing=False):
     document_entity_to_type = get_document_entity_to_type_dict(document)
     labeled_relations = []
     for rel in document['relations']:
-        entity1_type = document_entity_to_type(rel["infons"]["entity1"])
-        entity2_type = document_entity_to_type(rel["infons"]["entity2"])
+        entity1_type = document_entity_to_type[rel["infons"]["entity1"]]
+        entity2_type = document_entity_to_type[rel["infons"]["entity2"]]
         define_rel = entity1_type + "-" + rel["infons"]["type"] + "-" + entity2_type
         if define_rel in relation_types:
             if no_processing:
