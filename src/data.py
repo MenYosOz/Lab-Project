@@ -455,6 +455,7 @@ def parse_document(document, tokenizer, markers=True, no_processing=False):
             "tokens": tokens,
             "entity_positions": entity_positions,
             "relations": document['relations'],
+            "passages": document['passages']
         }
 
 
