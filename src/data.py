@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 def tokenize_and_reindex(sentences, tokenizer, em_tokens=("*", "*")):
-    sentence_lengths = [len(s) for s["text"] in sentences]
+    sentence_lengths = [len(s["text"]) for s in sentences]
     all_tokens = []
     for sent in sentences:
         all_tokens.extend(sent["text"])
@@ -168,7 +168,7 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
         for rel in document['relations']:
             entity1_type = rel["infons"]["entity1"]
             entity2_type = rel["infons"]["entity2"]
-            define_rel = entity1_type + "-" + r["infons"]["type"] + "-" + entity2_type
+            define_rel = entity1_type + "-" + rel["infons"]["type"] + "-" + entity2_type
             if define_rel not in relation_types_in_document:
                 # mark as added
                 relation_types_in_document.append(define_rel)
