@@ -34,8 +34,8 @@ def tokenize_and_reindex(sentences, tokenizer, em_tokens=("*", "*")):
     mention_map = []
     for i, mentions in enumerate(sentences):
         for ment in mentions["annotations"]:
-            start_tokens[ment["locations"]["offset"] + l_offset].append(m)
-            end_tokens[ment["locations"]["offset"] + ment["locations"]["length"] + l_offset].append(m)
+            start_tokens[ment["locations"][0]["offset"] + l_offset].append(m)
+            end_tokens[ment["locations"][0]["offset"] + ment["locations"][0]["length"] + l_offset].append(m)
             mention_map.append(i)
             m += 1
 
@@ -137,6 +137,18 @@ def parse_test(input_file, tokenizer, K=1, n_queries=1, n_samples=100, markers=T
     return all_eps
 
 
+def get_document_entity_to_type_dict(document):
+    document_entity_to_type = {}
+    for p in document["passages"]:
+        for a in p["annotations"]:
+            if ',' in a["infons"]["identifier"]:
+                for id in a["infons"]["identifier"].split(','):
+                    document_entity_to_type[id] = a["infons"]["type"]
+            else:
+                document_entity_to_type[a["infons"]["identifier"]] = a["infons"]["type"]
+    return document_entity_to_type
+
+
 def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, markers=True, balancing="soft", seed=123, ensure_positive=False, cache="cache/", eval_single=False, no_processing=False):
 
     if balancing not in ["hard","soft","single"]:
@@ -159,6 +171,7 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
     document_blacklist = []
 
     for i, document in tqdm(enumerate(input_file["documents"]), desc="Indexing"):
+        document_entity_to_type = get_document_entity_to_type_dict(document)
 
         relation_types_in_document = []
 
@@ -166,8 +179,8 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
             document_blacklist.append(i)
 
         for rel in document['relations']:
-            entity1_type = rel["infons"]["entity1"]
-            entity2_type = rel["infons"]["entity2"]
+            entity1_type = document_entity_to_type[rel["infons"]["entity1"]]
+            entity2_type = document_entity_to_type[rel["infons"]["entity2"]]
             define_rel = entity1_type + "-" + rel["infons"]["type"] + "-" + entity2_type
             if define_rel not in relation_types_in_document:
                 # mark as added
@@ -398,20 +411,23 @@ def intersection(lst1, lst2):
 
 
 def select_labels(document, relation_types, no_processing=False):
-
+    document_entity_to_type = get_document_entity_to_type_dict(document)
     labeled_relations = []
-    for rel in document['labels']:
-        if rel['r'] in relation_types:
+    for rel in document['relations']:
+        entity1_type = document_entity_to_type(rel["infons"]["entity1"])
+        entity2_type = document_entity_to_type(rel["infons"]["entity2"])
+        define_rel = entity1_type + "-" + rel["infons"]["type"] + "-" + entity2_type
+        if define_rel in relation_types:
             if no_processing:
                 labeled_relations.append(rel)
             else:
-                labeled_relations.append([rel['h'], rel['t'], rel['r']])
-    
+                labeled_relations.append([rel["infons"]["entity1"], rel["infons"]["entity2"], define_rel])
+
     if no_processing:
         return {
             "labels": labeled_relations,
-            "sents": document['sents'], 
-            "vertexSet": document['vertexSet'],
+            "passages": document['passages'],
+            "relations": document['relations']
         }
     else:
         return {
@@ -438,7 +454,7 @@ def parse_document(document, tokenizer, markers=True, no_processing=False):
         return {
             "tokens": tokens,
             "entity_positions": entity_positions,
-            "labels": document['labels'],
+            "relations": document['relations'],
         }
 
 
