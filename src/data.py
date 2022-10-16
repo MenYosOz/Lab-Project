@@ -434,6 +434,7 @@ def select_labels(document, relation_types, no_processing=False):
             "tokens": document["tokens"],
             "entity_positions": document["entity_positions"],
             "labels": labeled_relations,
+            "passages": document['passages']
         }
 
 
