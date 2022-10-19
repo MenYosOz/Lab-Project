@@ -359,13 +359,13 @@ def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, c
                 parsed_docs = json.load(open(filepath,"r"))
             except:
                 print("ran into problems loading file. rebuilding dataset.")
-                parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file, desc="Parsing documents")]
+                parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file["documents"], desc="Parsing documents")]
                 json.dump(parsed_docs, open(filepath,"w"))
         else:
-            parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file, desc="Parsing documents")]
+            parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file["documents"], desc="Parsing documents")]
             json.dump(parsed_docs, open(filepath,"w"))
     else:
-        parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file, desc="Parsing documents")]
+        parsed_docs = [parse_document(doc, tokenizer, markers=markers, no_processing=no_processing) for doc in tqdm(input_file["documents"], desc="Parsing documents")]
 
     # ----- Episode Construction -----
     output = []
