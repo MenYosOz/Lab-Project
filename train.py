@@ -72,7 +72,7 @@ if args.num_epochs != 0:
     training_episodes = parse_episodes("data/Train.BioC.JSON", tokenizer, K=args.support_docs_train, n_queries=args.query_docs_train, n_samples=args.samples_data_train, markers=args.use_markers, balancing=args.balancing_train, seed=args.seed_data, ensure_positive=args.ensure_positive, cache="cache/")
     dev_episodes = parse_episodes("data/Dev.BioC.JSON", tokenizer, K=args.support_docs_eval, n_queries=args.query_docs_eval, n_samples=args.samples_data_dev, markers=args.use_markers, balancing=args.balancing_eval, seed=args.seed_data, ensure_positive=args.ensure_positive, cache="cache/")
 indomain_test_episodes = parse_episodes("data/Test.BioC.JSON", tokenizer, K=args.support_docs_eval, n_queries=args.query_docs_eval, n_samples=args.samples_data_dev, markers=args.use_markers, balancing=args.balancing_eval, seed=args.seed_data, ensure_positive=args.ensure_positive, cache="cache/")
-scierc_test_episodes = parse_episodes_from_index("data/test_scierc.json", f"data/test_cross_domain_{args.support_docs_eval}_doc_indices.json", tokenizer, markers=args.use_markers, cache="cache/")
+scierc_test_episodes = indomain_test_episodes
 # indomain_test_episodes = parse_episodes_from_index("data/Test.BioC.JSON", f"data/test_in_domain_{args.support_docs_eval}_doc_indices_BioC.json", tokenizer, markers=args.use_markers, cache="cache/")
 # scierc_test_episodes = parse_episodes_from_index("data/test_scierc.json", f"data/test_cross_domain_{args.support_docs_eval}_doc_indices_BioC.json", tokenizer, markers=args.use_markers, cache="cache/")
 
