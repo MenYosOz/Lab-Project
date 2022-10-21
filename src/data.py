@@ -6,6 +6,7 @@ import transformers
 import torch
 import os
 from pathlib import Path
+from util import convert_BioRED_to_FREDo_format
 
 # %%
 
@@ -147,7 +148,7 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
     input_filename = input_file
     
     # Load file
-    input_file = json.load(open(input_file))
+    input_file = convert_BioRED_to_FREDo_format(json.load(open(input_file)))
 
     # ----- Indexing -----
     # Build a dictionary containing the indices of all documents containing an instance of each relation type
@@ -317,6 +318,7 @@ def parse_episodes(input_file, tokenizer, K=1, n_queries=1, n_samples=100, marke
 
     return output
 
+
 def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, cache=None, eval_single=False, no_processing=False):
 
     episodes = json.load(open(index_file))
@@ -324,7 +326,7 @@ def parse_episodes_from_index(input_file, index_file, tokenizer, markers=True, c
     input_filename = input_file
     
     # Load file
-    input_file = json.load(open(input_file))
+    input_file = convert_BioRED_to_FREDo_format(json.load(open(input_file)))
 
     # ----- Document Parsing & Caching -----
     if cache is not None:

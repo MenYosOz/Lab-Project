@@ -57,3 +57,7 @@ def get_f1_macro(tp, fp, fn, prnt=False):
         print('{:<10}  {:>10}  {:>10}  {:>10}'.format(f"macro", f"{100*sum(p)/len(p):.2f}", f"{100*sum(r)/len(r):.2f}", f"{100*sum(f)/len(f):.2f}"))
     
     return 100*sum(p)/len(p), 100*sum(r)/len(r), 100*sum(f)/len(f)
+
+
+def convert_BioRED_to_FREDo_format(input_file_BioRED):
+    return input_file_BioRED
