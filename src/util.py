@@ -1,6 +1,7 @@
+import re
+
+
 def get_f1(tp, fp, fn):
-
-
     if sum(tp.values())+sum(fp.values()) == 0:
         precision = 0
     else:
@@ -17,6 +18,7 @@ def get_f1(tp, fp, fn):
         f1 = 2 * precision * recall / (precision + recall)
     
     return 100 * precision, 100 * recall, 100 * f1
+
 
 def get_f1_macro(tp, fp, fn, prnt=False):
     if prnt:
@@ -59,5 +61,37 @@ def get_f1_macro(tp, fp, fn, prnt=False):
     return 100*sum(p)/len(p), 100*sum(r)/len(r), 100*sum(f)/len(f)
 
 
+def process_sentences_BioRED(sentences_text):
+    ret_list = []
+    sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?)\s', sentences_text)
+    for i_s, s in enumerate(sentences):
+        l = re.split(r'(?!\.(?!$))(\W)', s)
+        l = list([item for item in l if item not in ('', ' ', '\n')])
+        ret_list.append(l)
+    return ret_list
+
+
 def convert_BioRED_to_FREDo_format(input_file_BioRED):
-    return input_file_BioRED
+    ret_json = []
+    docmurnt_entity_to_type = {}
+    for i in range(len(input_file_BioRED["documents"])):
+        ret_sentences = []
+        for i, p in enumerate(input_file_BioRED["documents"][i]["passages"]):
+            sentences = process_sentences_BioRED(p["text"])
+            ret_sentences.extend(sentences)
+            for a in p["annotations"]:
+                if ',' in a["infons"]["identifier"]:
+                    for id in a["infons"]["identifier"].split(','):
+                        docmurnt_entity_to_type[id] = a["infons"]["type"]
+                else:
+                    docmurnt_entity_to_type[a["infons"]["identifier"]] = a["infons"]["type"]
+        for r in input_file_BioRED["documents"][i]["relations"]:
+             entity1_type = docmurnt_entity_to_type[r["infons"]["entity1"]]
+            # entity2_type = docmurnt_entity_to_type[r["infons"]["entity2"]]
+            # set_of_entity_type.extend([entity1_type, entity2_type])
+            # set_of_relations.append(entity1_type + "-" + r["infons"]["type"] + "-" + entity2_type)
+            # set_of_associations.append(r["infons"]["type"])
+        ret_json.append({"sents": ret_sentences})
+
+
+    return ret_json
