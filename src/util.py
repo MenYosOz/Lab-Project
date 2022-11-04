@@ -71,27 +71,65 @@ def process_sentences_BioRED(sentences_text):
     return ret_list
 
 
+def find_sent_id_and_pos(locations, sentences, initial_offset, passage, name, k=3):
+    entity_position = locations["offset"] - initial_offset
+    crop_with_entity = passage[max(entity_position-k, 0): min(entity_position + locations["length"] + k,
+                                                              len(passage))]
+    crop_with_entity = crop_with_entity.replace(' ', '')
+    index = -1
+    pos = [0, 1]
+    for i, s in enumerate(sentences):
+        join_sentence = ''.join(s)
+        if crop_with_entity in join_sentence:
+            index = i
+            break
+    flag_in_name = False
+
+    for i, word in  enumerate(sentences[index]):
+        if word in name and (not flag_in_name):
+            pos[0] = i
+            flag_in_name = True
+
+        if word not in name and flag_in_name:
+            pos[1] = i
+            break
+
+    return index, pos
+
+
+
 def convert_BioRED_to_FREDo_format(input_file_BioRED):
     ret_json = []
-    docmurnt_entity_to_type = {}
+    docmurnt_entity_to_annotation = {}
     for i in range(len(input_file_BioRED["documents"])):
         ret_sentences = []
+        ret_vertex_set = []
+        ret_labels = []
         for i, p in enumerate(input_file_BioRED["documents"][i]["passages"]):
             sentences = process_sentences_BioRED(p["text"])
             ret_sentences.extend(sentences)
             for a in p["annotations"]:
                 if ',' in a["infons"]["identifier"]:
                     for id in a["infons"]["identifier"].split(','):
-                        docmurnt_entity_to_type[id] = a["infons"]["type"]
+                        docmurnt_entity_to_annotation[id] = a
                 else:
-                    docmurnt_entity_to_type[a["infons"]["identifier"]] = a["infons"]["type"]
+                    docmurnt_entity_to_annotation[a["infons"]["identifier"]] = a
+                name_vertex_var = a["text"]
+                type_vertex_var = a["infons"]["type"]
+                sent_id_vertex_var, pos_vertex_var = find_sent_id_and_pos(a["locations"], sentences, p["offset"], a["text"], p["text"])
+                ret_vertex_set.append([{"pos": pos_vertex_var, "type": type_vertex_var, "name": name_vertex_var,
+                                        "sent_id": sent_id_vertex_var}])
+
         for r in input_file_BioRED["documents"][i]["relations"]:
-             entity1_type = docmurnt_entity_to_type[r["infons"]["entity1"]]
-            # entity2_type = docmurnt_entity_to_type[r["infons"]["entity2"]]
+            entity1_type = docmurnt_entity_to_annotation[r["infons"]["entity1"]]["infons"]["type"]
+            entity2_type = docmurnt_entity_to_annotation[r["infons"]["entity2"]]["infons"]["type"]
+            r_label_ret = entity1_type + "-" + r["infons"]["type"] + "-" + entity2_type
+            ret_labels.append({"r": r_label_ret, "h": "", "t": "", "evidence": []})
             # set_of_entity_type.extend([entity1_type, entity2_type])
             # set_of_relations.append(entity1_type + "-" + r["infons"]["type"] + "-" + entity2_type)
             # set_of_associations.append(r["infons"]["type"])
-        ret_json.append({"sents": ret_sentences})
+        ret_json.append({"sents": ret_sentences, "title": "None for now", "vertexSet": ret_vertex_set,
+                         "labels": ret_labels})
 
 
     return ret_json
