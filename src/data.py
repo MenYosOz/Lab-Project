@@ -6,7 +6,7 @@ import transformers
 import torch
 import os
 from pathlib import Path
-from util import convert_BioRED_to_FREDo_format
+from src.util import convert_BioRED_to_FREDo_format
 
 # %%
 
